@@ -1,0 +1,75 @@
+import tkinter as tk
+from tkinter import messagebox
+import requests
+from geopy.geocoders import Nominatim
+from PIL import Image, ImageTk
+import io
+
+# OpenWeatherMap API
+API_KEY = 'your_openweathermap_api_key'
+
+def get_weather_data(location):
+    # Get weather details from OpenWeatherMap API
+    base_url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={API_KEY}&units=metric"
+    response = requests.get(base_url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+def show_weather(data):
+    # Extract weather data
+    temperature = data['main']['temp']
+    weather_description = data['weather'][0]['description']
+    wind_speed = data['wind']['speed']
+
+    # Show weather data on the UI
+    weather_label['text'] = f"Temperature: {temperature}°C\nDescription: {weather_description}\nWind Speed: {wind_speed} m/s"
+
+    # Display weather icon
+    icon_code = data['weather'][0]['icon']
+    icon_url = f"http://openweathermap.org/img/wn/{icon_code}@2x.png"
+    icon_data = requests.get(icon_url).content
+    icon_image = Image.open(io.BytesIO(icon_data))
+    icon_photo = ImageTk.PhotoImage(icon_image)
+    weather_icon_label.configure(image=icon_photo)
+    weather_icon_label.image = icon_photo
+
+def get_location():
+    # Use Geopy to get the user's current location based on input or GPS
+    geolocator = Nominatim(user_agent="weather_app")
+    location = location_entry.get()
+    if not location:
+        messagebox.showwarning("Input Error", "Please enter a location!")
+        return
+    weather_data = get_weather_data(location)
+    if weather_data:
+        show_weather(weather_data)
+    else:
+        messagebox.showerror("Error", "Unable to get weather data. Check the location or try again later.")
+
+# Main Application Window
+root = tk.Tk()
+root.title("Weather App")
+root.geometry("400x400")
+
+# User Input for Location
+location_label = tk.Label(root, text="Enter Location:")
+location_label.pack()
+
+location_entry = tk.Entry(root)
+location_entry.pack()
+
+get_weather_button = tk.Button(root, text="Get Weather", command=get_location)
+get_weather_button.pack()
+
+# Weather Display Area
+weather_label = tk.Label(root, text="", font=("Helvetica", 14))
+weather_label.pack()
+
+# Weather Icon Area
+weather_icon_label = tk.Label(root)
+weather_icon_label.pack()
+
+# Start the Tkinter loop
+root.mainloop()
